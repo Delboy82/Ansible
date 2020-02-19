@@ -7,6 +7,7 @@
   vars:
     compliant_ios_version: 15.0(2)EX5
     src_image: c2960x-universalk9-mz.152-7.E0a.bin
+    src_image_size_kb: 26000
     image_source_server: 192.168.1.27
     src_image_md5: 56754cd55e42d84acea5dfd1628d99b9
     ansible_command_timeout: 1500
@@ -23,27 +24,38 @@
          - "Serial {{ ansible_net_serialnum }}"
          - "OS version {{ ansible_net_version }}"
          - "Running Image {{ansible_net_image }}"
-         - "Filesystem  {{ ansible_net_filesystems_info }}"
+         - "Filesystem  {{ ansible_net_filesystems_info['flash:'].spacefree_kb | int }}"
          - "Configured IP address {{ansible_net_all_ipv4_addresses }}"
          - "CDP Neighbours {{ ansible_net_neighbors }}"
     
-   - name: Copy Image to switch.
-     ios_command:
-       commands:
-         - command: 'copy http://{{image_source_server}}/{{src_image}} flash:/{{src_image}}'
-           prompt: '[confirm]'
-           answer: "\r"
+#   - name: Copy Image to switch.
+#     ios_command:
+#       commands:
+#         - command: 'copy http://{{image_source_server}}/{{src_image}} flash:/{{src_image}}'
+#           prompt: '[confirm]'
+#           answer: "\r"
+#     when: ansible_net_filesystems_info['flash:'].spacefree_kb|int > src_image_size_kb|int
 
-   - name: Verify MD5 of Copied Image.
+   - name: Gather MD5 of Copied Image.
      ios_command:
        commands:
          - command: 'verify /md5 flash:/{{src_image}}'
      register: result
 
-   - debug: 
-       var: result.stdout_lines[0]
+   - name: Verify MD5 Image. 
+     debug: 
+       msg: 
+         - "Output from results {{result}}"
+         - "Src Image MD5 {{src_image_md5}}"
+         - "MD5 Matched"
+#     when: src_image_md5 in result 
 
-   - name: Set Boot Path.
-     ios_config:
-       commands:
-         - boot system flash:/{{src_image}}
+
+
+
+
+
+#   - name: Set Boot Path.
+#     ios_config:
+#       commands:
+#         - boot system flash:/{{src_image}}
