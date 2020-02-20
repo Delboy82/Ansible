@@ -28,34 +28,31 @@
          - "Configured IP address {{ansible_net_all_ipv4_addresses }}"
          - "CDP Neighbours {{ ansible_net_neighbors }}"
     
-#   - name: Copy Image to switch.
-#     ios_command:
-#       commands:
-#         - command: 'copy http://{{image_source_server}}/{{src_image}} flash:/{{src_image}}'
-#           prompt: '[confirm]'
-#           answer: "\r"
-#     when: ansible_net_filesystems_info['flash:'].spacefree_kb|int > src_image_size_kb|int
-
+   - name: Copy Image to switch.
+     ios_command:
+       commands:
+         - command: 'copy http://{{image_source_server}}/{{src_image}} flash:/{{src_image}}'
+           prompt: '[confirm]'
+           answer: "\r"
+ 
+     when: ansible_net_filesystems_info['flash:'].spacefree_kb|int > src_image_size_kb|int 
+    
    - name: Gather MD5 of Copied Image.
      ios_command:
        commands:
          - command: 'verify /md5 flash:/{{src_image}}'
-     register: result
+     register: md5_result
 
-   - name: Verify MD5 Image. 
-     debug: 
-       msg: 
-         - "Output from results {{result}}"
-         - "Src Image MD5 {{src_image_md5}}"
-         - "MD5 Matched"
-#     when: src_image_md5 in result 
+#     when: ansible_net_filesystems_info['flash:'].spacefree_kb|int > src_image_size_kb|int
 
+   - name: Setting Boot Path if MD5 is matched. 
+     ios_config:
+       commands:
+         - no boot system
+         - boot system flash:/{{src_image}}
 
-
-
+     when: 'src_image_md5 in md5_result.stdout[0]' 
 
 
-#   - name: Set Boot Path.
-#     ios_config:
-#       commands:
-#         - boot system flash:/{{src_image}}
+#Do I need to save changes before reboot.
+#Need to add ansible block and restructure when statements.
